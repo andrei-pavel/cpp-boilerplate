@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Usage:
+#   ./clang-format [<filename>...]
+#
+# Can be called from anywhere assuming this file is in a git repository.
+
+SCRIPT_PATH="$(dirname "$(readlink -f "${0}")")"
+PWD="$(pwd)"
+
+pushd "${SCRIPT_PATH}" 1> /dev/null
+pushd "$(git rev-parse --show-toplevel)" 1> /dev/null
+  while (( ${#} > 0 )); do
+    printf '> %s\n' "${PWD}/${1}"
+    if [[ -f "${1}" ]]; then
+      file="${1}"
+      if [[ "${file}" != '/'* ]]; then
+        file="${PWD}/${file}"
+      fi
+      clang-format --style=file -i "${file}"
+    elif [[ -d "${1}" ]]; then
+      files="$(git ls-files | xargs -I{} bash -c 'printf "${PWD}/{}\\n"' | grep "${1}" | grep -E '\.cc|\.h')"
+      printf '%s\n' "${files}"
+      printf '%s' "${files}" | xargs "${SCRIPT_PATH}/clang-format"
+    fi
+    shift
+  done
+popd 1> /dev/null
+popd 1> /dev/null
